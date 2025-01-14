@@ -2,7 +2,7 @@
 # See license.txt
 
 import frappe
-from frappe.tests.utils import FrappeTestCase
+from frappe.tests import IntegrationTestCase
 from frappe.utils import flt, nowdate, random_string
 
 from erpnext.accounts.doctype.account.test_account import create_account
@@ -10,6 +10,7 @@ from erpnext.accounts.doctype.payment_entry.test_payment_entry import get_paymen
 from erpnext.setup.doctype.employee.test_employee import make_employee
 
 from hrms.hr.doctype.expense_claim.expense_claim import (
+	MismatchError,
 	get_outstanding_amount_for_claim,
 	make_bank_entry,
 	make_expense_claim_for_delivery_trip,
@@ -19,7 +20,7 @@ test_dependencies = ["Employee"]
 company_name = "_Test Company 3"
 
 
-class TestExpenseClaim(FrappeTestCase):
+class TestExpenseClaim(IntegrationTestCase):
 	def setUp(self):
 		if not frappe.db.get_value("Cost Center", {"company": company_name}):
 			cost_center = frappe.new_doc("Cost Center")
@@ -567,6 +568,13 @@ class TestExpenseClaim(FrappeTestCase):
 			fields=["sum(debit) as total_debit", "sum(credit) as total_credit"],
 		)
 		self.assertEqual(ledger_balance, expected_data)
+
+	def test_company_department_validation(self):
+		# validate company and department
+		expense_claim = frappe.new_doc("Expense Claim")
+		expense_claim.company = "_Test Company 3"
+		expense_claim.department = "Accounts - _TC2"
+		self.assertRaises(MismatchError, expense_claim.save)
 
 
 def get_payable_account(company):
