@@ -6,7 +6,18 @@ app_email = "contact@frappe.io"
 app_license = "GNU General Public License (v3)"
 required_apps = ["frappe/erpnext"]
 source_link = "http://github.com/frappe/hrms"
+app_logo_url = "/assets/hrms/images/frappe-hr-logo.svg"
+app_home = "/app/overview"
 
+add_to_apps_screen = [
+	{
+		"name": "hrms",
+		"logo": "/assets/hrms/images/frappe-hr-logo.svg",
+		"title": "Frappe HR",
+		"route": "/app/overview",
+		"has_permission": "hrms.hr.utils.check_app_permission",
+	}
+]
 
 # Includes in <head>
 # ------------------
@@ -70,6 +81,7 @@ website_generators = ["Job Opening"]
 
 website_route_rules = [
 	{"from_route": "/hrms/<path:app_path>", "to_route": "hrms"},
+	{"from_route": "/hr/<path:app_path>", "to_route": "roster"},
 ]
 # Jinja
 # ----------
@@ -87,6 +99,8 @@ jinja = {
 # before_install = "hrms.install.before_install"
 after_install = "hrms.install.after_install"
 after_migrate = "hrms.setup.update_select_perm_after_install"
+
+setup_wizard_complete = "hrms.subscription_utils.update_erpnext_access"
 
 # Uninstallation
 # ------------
@@ -156,6 +170,7 @@ doc_events = {
 			"hrms.overrides.company.make_company_fixtures",
 			"hrms.overrides.company.set_default_hr_accounts",
 		],
+		"on_trash": "hrms.overrides.company.handle_linked_docs",
 	},
 	"Holiday List": {
 		"on_update": "hrms.utils.holiday_list.invalidate_cache",
@@ -172,12 +187,14 @@ doc_events = {
 		"on_submit": [
 			"hrms.hr.doctype.expense_claim.expense_claim.update_payment_for_expense_claim",
 			"hrms.hr.doctype.full_and_final_statement.full_and_final_statement.update_full_and_final_statement_status",
+			"hrms.payroll.doctype.salary_withholding.salary_withholding.update_salary_withholding_payment_status",
 		],
 		"on_update_after_submit": "hrms.hr.doctype.expense_claim.expense_claim.update_payment_for_expense_claim",
 		"on_cancel": [
 			"hrms.hr.doctype.expense_claim.expense_claim.update_payment_for_expense_claim",
 			"hrms.payroll.doctype.salary_slip.salary_slip.unlink_ref_doc_from_salary_slip",
 			"hrms.hr.doctype.full_and_final_statement.full_and_final_statement.update_full_and_final_statement_status",
+			"hrms.payroll.doctype.salary_withholding.salary_withholding.update_salary_withholding_payment_status",
 		],
 	},
 	"Loan": {"validate": "hrms.hr.utils.validate_loan_repay_from_salary"},
@@ -207,6 +224,7 @@ scheduler_events = {
 	],
 	"hourly_long": [
 		"hrms.hr.doctype.shift_type.shift_type.process_auto_attendance_for_all_shifts",
+		"hrms.hr.doctype.shift_schedule_assignment.shift_schedule_assignment.process_auto_shift_creation",
 	],
 	"daily": [
 		"hrms.controllers.employee_reminders.send_birthday_reminders",
@@ -285,12 +303,14 @@ override_doctype_dashboards = {
 	"Task": "hrms.overrides.dashboard_overrides.get_dashboard_for_project",
 	"Project": "hrms.overrides.dashboard_overrides.get_dashboard_for_project",
 	"Timesheet": "hrms.overrides.dashboard_overrides.get_dashboard_for_timesheet",
+	"Bank Account": "hrms.overrides.dashboard_overrides.get_dashboard_for_bank_account",
 }
 
 # exempt linked doctypes from being automatically cancelled
 #
 # auto_cancel_exempted_doctypes = ["Auto Repeat"]
 
+ignore_links_on_delete = ["PWA Notification"]
 
 # User Data Protection
 # --------------------
@@ -330,3 +350,15 @@ override_doctype_dashboards = {
 # Recommended only for DocTypes which have limited documents with untranslated names
 # For example: Role, Gender, etc.
 # translated_search_doctypes = []
+
+company_data_to_be_ignored = [
+	"Salary Component Account",
+	"Salary Structure",
+	"Salary Structure Assignment",
+	"Payroll Period",
+	"Income Tax Slab",
+	"Leave Period",
+	"Leave Policy Assignment",
+	"Employee Onboarding Template",
+	"Employee Separation Template",
+]
